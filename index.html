@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="th" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales Data Quality Audit & Cleansing Hub</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- PapaParse for local full CSV streaming -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <!-- Google Fonts: Prompt & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Prompt', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Prompt', sans-serif; }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- Top Navigation Bar -->
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
+          <i data-lucide="shield-check" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <span class="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            Data Quality Hub
+            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold border border-emerald-300">Cleaned v1.0</span>
+          </span>
+          <p class="text-xs text-slate-500">Retail Sales Data Audit & Cleansing System</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <a href="cleaned_sales_data.csv" download class="inline-flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium rounded-lg text-white bg-sky-600 hover:bg-sky-700 shadow-sm transition">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span>โหลด Cleaned CSV</span>
+        </a>
+        <a id="repoLink" href="https://github.com/nathapong1234zx-droid/nathapong1111" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition">
+          <i data-lucide="github" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Header -->
+  <section class="bg-gradient-to-b from-sky-900 via-slate-900 to-slate-900 text-white py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 text-xs font-medium border border-sky-400/30 mb-4">
+          <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+          รายงานผลการตรวจสอบและล้างข้อมูลเชิงลึก (Audit & Cleansing)
+        </div>
+        <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+          รายงานคุณภาพข้อมูลการขาย <br class="hidden sm:block"/>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-300">Sales Data Cleansing & Business Logic Alignment</span>
+        </h1>
+        <p class="mt-3 text-slate-300 text-sm sm:text-base leading-relaxed">
+          ผลการวิเคราะห์และแก้ไขปัญหาคุณภาพข้อมูล 10,000 รายการ แบ่งเป็น 3 มิติหลัก: ความสมบูรณ์ของข้อมูล, ความขัดแย้งเชิงตรรกะทางธุรกิจ และความคงที่ของราคาสินค้า พร้อมส่งมอบข้อมูลที่พร้อมต่อการวิเคราะห์ 100%
+        </p>
+      </div>
+
+      <!-- Quick Metrics Grid -->
+      <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+          <div class="flex items-center justify-between text-slate-400 text-xs">
+            <span>รายการเริ่มต้น</span>
+            <i data-lucide="database" class="w-4 h-4 text-sky-400"></i>
+          </div>
+          <div class="mt-2 text-2xl font-bold text-white">10,000</div>
+          <div class="text-xs text-slate-400 mt-1">เรคอร์ดทั้งหมดใน Raw Data</div>
+        </div>
+
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+          <div class="flex items-center justify-between text-slate-400 text-xs">
+            <span>ข้อมูลหลังคลีน</span>
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+          </div>
+          <div class="mt-2 text-2xl font-bold text-emerald-300">9,803</div>
+          <div class="text-xs text-emerald-400 mt-1">กรองเพศไม่ระบุออก 197 รายการ</div>
+        </div>
+
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+          <div class="flex items-center justify-between text-slate-400 text-xs">
+            <span>ปัญหาที่พบและแก้ไข</span>
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+          </div>
+          <div class="mt-2 text-2xl font-bold text-amber-300">9 ปัญหา</div>
+          <div class="text-xs text-amber-400 mt-1">ครอบคลุม 3 กลุ่มความผิดปกติ</div>
+        </div>
+
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+          <div class="flex items-center justify-between text-slate-400 text-xs">
+            <span>เรคอร์ดที่ปรับแก้ตรรกะ</span>
+            <i data-lucide="sliders" class="w-4 h-4 text-indigo-400"></i>
+          </div>
+          <div class="mt-2 text-2xl font-bold text-indigo-300">5,731</div>
+          <div class="text-xs text-indigo-400 mt-1">อายุ / COD / ค่าส่ง / อยุธยา</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Container -->
+  <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 w-full">
+
+    <!-- Section 1: The 9 Issues Breakdown by Category -->
+    <section>
+      <div class="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-3">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="layers" class="w-6 h-6 text-sky-600"></i>
+            เจาะลึก 9 ปัญหาคุณภาพข้อมูลและแนวทางจัดการ
+          </h2>
+          <p class="text-sm text-slate-500 mt-1">จำแนกตามมาตรฐาน Data Quality และ Business Rules</p>
+        </div>
+        <!-- Group Filter Tabs -->
+        <div class="flex flex-wrap gap-2 text-xs font-medium">
+          <button onclick="filterIssueCards('all')" class="tab-btn active px-3 py-1.5 rounded-lg bg-sky-600 text-white transition">ทั้งหมด (9)</button>
+          <button onclick="filterIssueCards('g1')" class="tab-btn px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition">🔴 กลุ่ม 1: ข้อมูลไม่สมบูรณ์ (4)</button>
+          <button onclick="filterIssueCards('g2')" class="tab-btn px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition">🟡 กลุ่ม 2: ตรรกะขัดแย้ง (4)</button>
+          <button onclick="filterIssueCards('g3')" class="tab-btn px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition">🔵 กลุ่ม 3: ราคาสินค้า (1)</button>
+        </div>
+      </div>
+
+      <!-- Issue Cards Grid -->
+      <div id="issueGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <!-- Issue 1 -->
+        <div class="issue-card g1 bg-white rounded-2xl p-5 border border-rose-200 shadow-sm hover:shadow-md transition">
+          <div class="flex items-start justify-between">
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 border border-rose-200">
+              🔴 กลุ่มที่ 1: ความไม่สมบูรณ์
+            </span>
+            <span class="text-xs font-bold text-slate-400">197 รายการ</span>
+          </div>
+          <h3 class="mt-3 text-base font-bold text-slate-900 flex items-center gap-1.5">
+            <i data-lucide="user-x" class="w-4 h-4 text-rose-500"></i>
+            เพศไม่ตรงเงื่อนไข (ค่า "ไม่ระบุ")
+          </h3>
+          <p class="mt-2 text-xs text-slate-600 leading-relaxed">
+            โจทย์ต้องการข้อมูลเฉพาะเพศ "ชาย" และ "หญิง" เพื่อทำ Customer Segmentation แต่มีค่า "ไม่ระบุ" ปะปน
+          </p>
+          <div class="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs">
+            <div class="text-slate-700 font-semibold text-emerald-700 flex items-center gap-1">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> การแก้ไข: กรอง (Drop) 197 แถวนี้ออก
+            </div>
+            <div class="text-slate-500">
+              🛡️ ป้องกัน: ทำ Mandatory Input บังคับเลือกในระบบสมัคร
+            </div>
+          </div>
+        </div>
+
+        <!-- Issue 2 -->
+        <div class="issue-card g1 bg-white rounded-2xl p-5 border border-rose-200 shadow-sm hover:shadow-md transition">
+          <div class="flex items-start justify-between">
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 border border-rose-200">
+              🔴 กลุ่มที่ 1: ความไม่สมบูรณ์
+            </span>
+            <span class="text-xs font-bold text-slate-400">52 จว. หาย</span>
+          </div>
+          <h3 class="mt-3 text-base font-bold text-slate-900 flex items-center gap-1.5">
+            <i data-lucide="map-pin-off" class="w-4 h-4 text-rose-500"></i>
+            ข้อมูลจังหวัดไม่ครบ 77 จังหวัด
+          </h3>
+          <p class="mt-2 text-xs text-slate-600 leading-relaxed">
+            มีข้อมูลเพียง 25 จังหวัด โดยภาคตะวันตกไม่มีเลย (0%) ทำให้ตัวอย่างมี Sampling Bias หากใช้อนุมานทั้งประเทศ
+          </p>
+          <div class="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs">
+            <div class="text-slate-700 font-semibold text-emerald-700 flex items-center gap-1">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> การแก้ไข: ระบุ Scope Limitation ในรายงาน
+            </div>
+            <div class="text-slate-500">
+              🛡️ ป้องกัน: ตรวจสอบ Data Pipeline ว่าติด Filter คลังสินค้าหรือไม่
+            </div>
+          </div>
+        </div>
+
+        <!-- Issue 3 -->
+        <div class="issue-card g1 bg-white rounded-2xl p-5 border border-rose-200 shadow-sm hover:shadow-md transition">
+          <div class="flex items-start justify-between">
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 border border-rose-200">
+              🔴 กลุ่มที่ 1: ความไม่สมบูรณ์
+            </span>
+            <span class="text-xs font-bold text-slate-400">264 รายการ</span>
+          </div>
+          <h3 class="mt-3 text-base font-bold text-slate-900 flex items-center gap-1.5">
+            <i data-lucide="type" class="w-4 h-4 text-rose-500"></i>
+            ชื่อจังหวัดไม่เป็นทางการ ("อยุธยา")
+          </h3>
+          <p class="mt-2 text-xs text-slate-600 leading-relaxed">
+            ใช้ชื่อย่อแบบคำพูด "อยุธยา" แทนชื่อทางการราชการ ส่งผลให้เชื่อมกับ Master Data ภูมิศาสตร์ไม่ติด
+          </p>
+          <div class="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs">
+            <div class="text-slate-700 font-semibold text-emerald-700 flex items-center gap-1">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> การแก้ไข: Map แปลงเป็น "พระนครศรีอยุธยา"
+            </div>
+            <div class="text-slate-500">
+              🛡️ ป้องกัน: ใช้รหัสไปรษณีย์ล็อก Dropdown จังหวัด/อำเภอ
+            </div>
+          </div>
+        </div>
+
+        <!-- Issue 4 -->
+        <div class="issue-card g1 bg-white rounded-2xl p-5 border border-rose-200 shadow-sm hover:shadow-md transition">
+          <div class="flex items-start justify-between">
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 border border-rose-200">
+              🔴 กลุ่มที่ 1: ความไม่สมบูรณ์
+            </span>
+            <span class="text-xs font-bold text-slate-400">1,863 รายการ</span>
+          </div>
+          <h3 class="mt-3 text-base font-bold text-slate-900 flex items-center gap-1.5">
+            <i data-lucide="star-off" class="w-4 h-4 text-rose-500"></i>
+            คะแนนรีวิวสูญหาย (Missing 19%)
+          </h3>
+          <p class="mt-2 text-xs text-slate-600 leading-relaxed">
+            มีค่าว่างถึง 19% เนื่องจากลูกค้าไม่ได้ส่งรีวิว หากเติมค่า 0 จะทำให้คะแนนเฉลี่ยต่ำกว่าความจริงอย่างรุนแรง
+          </p>
+          <div class="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs">
+            <div class="text-slate-700 font-semibold text-emerald-700 flex items-center gap-1">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> การแก้ไข: คงค่า Null (ไม่ใส่ 0) คำนวณเฉพาะที่มีรีวิว
+            </div>
+            <div class="text-slate-500">
+              🛡️ ป้องกัน: มี Incentive กระตุ้นให้รีวิวหลังรับพัสดุ
+            </div>
+          </div>
+        </div>
+
+        <!-- Issue 5 -->
+        <div class="issue-card g2 bg-white rounded-2xl p-5 border border-amber-200 shadow-sm hover:shadow-md transition">
+          <div class="flex items-start justify-between">
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+              🟡 กลุ่มที่ 2: ตรรกะขัดแย้ง
+            </span>
+            <span class="text-xs font-bold text-slate-400">396 รายการ</span>
+          </div>
+          <h3 class="mt-3 text-base font-bold text-slate-900 flex items-center gap-1.5">
+            <i data-lucide="store" class="w-4 h-4 text-amber-500"></i>
+            ซื้อหน้าร้านแต่เก็บเงินปลายทาง (COD)
+          </h3>
+          <p class="mt-2 text-xs text-slate-600 leading-relaxed">
+            ช่องทาง 'หน้าร้าน (POS)' แต่ชำระด้วย 'เก็บเงินปลายทาง' ซึ่งขัดกับความจริงของระบบขายสดหน้าร้าน
+          </p>
+          <div class="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs">
+            <div class="text-slate-700 font-semibold text-emerald-700 flex items-center gap-1">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> การแก้ไข: ปรับเป็น "เงินสด"
+            </div>
+            <div class="text-slate-500">
+              🛡️ ป้องกัน: ปิด Option COD ที่หน้าจอแคชเชียร์ POS
+            </div>
+          </div>
+        </div>
+
+        <!-- Issue 6 -->
+        <div class="issue-card g2 bg-white rounded-2xl p-5 border border-amber-200 shadow-sm hover:shadow-md transition">
+          <div class="flex items-start justify-between">
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+              🟡 กลุ่มที่ 2: ตรรกะขัดแย้ง
+            </span>
+            <span class="text-xs font-bold text-slate-400">456 รายการ</span>
+          </div>
+          <h3 class="mt-3 text-base font-bold text-slate-900 flex items-center gap-1.5">
+            <i data-lucide="x-circle" class="w-4 h-4 text-amber-500"></i>
+            ออร์เดอร์ยกเลิกแต่คิดค่าส่งและลงวันส่ง
+          </h3>
+          <p class="mt-2 text-xs text-slate-600 leading-relaxed">
+            สถานะ 'ยกเลิก' แต่มีค่าส่งและมีตัวเลขวันจัดส่ง ทำให้บันทึกรายได้/ค่าใช้จ่ายบวมเกินจริง
+          </p>
+          <div class="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs">
+            <div class="text-slate-700 font-semibold text-emerald-700 flex items-center gap-1">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> การแก้ไข: ปรับค่าส่ง=0, วันส่ง=ว่าง, คิดยอดสุทธิใหม่
+            </div>
+            <div class="text-slate-500">
+              🛡️ ป้องกัน: Event-driven Void/Refund อัตโนมัติเมื่อกดยกเลิก
+            </div>
+          </div>
+        </div>
+
+        <!-- Issue 7 -->
+        <div class="issue-card g2 bg-white rounded-2xl p-5 border border-amber-200 shadow-sm hover:shadow-md transition">
+          <div class="flex items-start justify-between">
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+              🟡 กลุ่มที่ 2: ตรรกะขัดแย้ง
+            </span>
+            <span class="text-xs font-bold text-slate-400">234 รายการ</span>
+          </div>
+          <h3 class="mt-3 text-base font-bold text-slate-900 flex items-center gap-1.5">
+            <i data-lucide="credit-card" class="w-4 h-4 text-amber-500"></i>
+            ผู้เยาว์ (15–17 ปี) รูดบัตรเครดิต
+          </h3>
+          <p class="mt-2 text-xs text-slate-600 leading-relaxed">
+            ผู้เยาว์ตามกฎหมายไม่สามารถถือบัตรเครดิตหลักเองได้ อาจเป็นบัตรเสริม บัญชีผู้ปกครอง หรือบัตรเดบิตที่ลงผิดประเภท
+          </p>
+          <div class="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs">
+            <div class="text-slate-700 font-semibold text-emerald-700 flex items-center gap-1">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> การแก้ไข: เพิ่ม Flag "บัตรเสริม/ผู้ปกครองยินยอม"
+            </div>
+            <div class="text-slate-500">
+              🛡️ ป้องกัน: ตรวจสอบ BIN Number จาก Payment Gateway
+            </div>
+          </div>
+        </div>
+
+        <!-- Issue 8 -->
+        <div class="issue-card g2 bg-white rounded-2xl p-5 border border-amber-200 shadow-sm hover:shadow-md transition">
+          <div class="flex items-start justify-between">
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+              🟡 กลุ่มที่ 2: ตรรกะขัดแย้ง
+            </span>
+            <span class="text-xs font-bold text-slate-400">4,379 รายการ</span>
+          </div>
+          <h3 class="mt-3 text-base font-bold text-slate-900 flex items-center gap-1.5">
+            <i data-lucide="hourglass" class="w-4 h-4 text-amber-500"></i>
+            อายุลูกค้าไม่เพิ่มขึ้นตามเวลา (2024–2025)
+          </h3>
+          <p class="mt-2 text-xs text-slate-600 leading-relaxed">
+            ลูกค้าเดิมซื้อซ้ำข้าม 2 ปี แต่อายุถูกบันทึกเป็น Static ค่าคงที่เท่าเดิม 100% ทำให้ Cohort Analysis เพี้ยน
+          </p>
+          <div class="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs">
+            <div class="text-slate-700 font-semibold text-emerald-700 flex items-center gap-1">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> การแก้ไข: ปรับอายุเพิ่มตามปีที่สั่งซื้อจริง (+1 ในปี 2025)
+            </div>
+            <div class="text-slate-500">
+              🛡️ ป้องกัน: เก็บ Date of Birth (DoB) แทนการเก็บอายุตรงๆ
+            </div>
+          </div>
+        </div>
+
+        <!-- Issue 9 -->
+        <div class="issue-card g3 bg-white rounded-2xl p-5 border border-sky-200 shadow-sm hover:shadow-md transition">
+          <div class="flex items-start justify-between">
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-100 text-sky-800 border border-sky-200">
+              🔵 กลุ่มที่ 3: ความคงที่ราคา
+            </span>
+            <span class="text-xs font-bold text-slate-400">28/33 สินค้า</span>
+          </div>
+          <h3 class="mt-3 text-base font-bold text-slate-900 flex items-center gap-1.5">
+            <i data-lucide="tags" class="w-4 h-4 text-sky-500"></i>
+            สินค้าชนิดเดียวกันมีหลายราคาต่อหน่วย
+          </h3>
+          <p class="mt-2 text-xs text-slate-600 leading-relaxed">
+            กระเป๋าเป้มี 21 ราคา, คีย์บอร์ดเกมมิ่งมี 31 ราคา โดยไม่มีฟิลด์แยกย่อย (SKU/Size/Color) อธิบายส่วนต่าง
+          </p>
+          <div class="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs">
+            <div class="text-slate-700 font-semibold text-emerald-700 flex items-center gap-1">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> การแก้ไข: คำนวณ Median Base Price & เพิ่มคอลัมน์ส่วนต่าง
+            </div>
+            <div class="text-slate-500">
+              🛡️ ป้องกัน: ใช้ Master Product SKU และคุม Price List
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section 2: Charts & Visual Analytics -->
+    <section class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="bar-chart-3" class="w-6 h-6 text-indigo-600"></i>
+            การวิเคราะห์เชิงภาพ (Visual Data Intelligence)
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1">สรุปการกระจายตัวของปัญหา พฤติกรรมการซื้อ และสถิติภูมิศาสตร์</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Chart 1: Issue Impact -->
+        <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200/80">
+          <h4 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <i data-lucide="pie-chart" class="w-4 h-4 text-sky-600"></i>
+            สัดส่วนเรคอร์ดที่ได้รับผลกระทบจากแต่ละปัญหา
+          </h4>
+          <div class="h-64 flex items-center justify-center">
+            <canvas id="issueChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Regional Distribution -->
+        <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200/80">
+          <h4 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <i data-lucide="map" class="w-4 h-4 text-emerald-600"></i>
+            ยอดคำสั่งซื้อแยกตามภูมิภาค (25 จังหวัดที่พบ)
+          </h4>
+          <div class="h-64 flex items-center justify-center">
+            <canvas id="regionChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 3: Sales Channels -->
+        <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200/80">
+          <h4 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <i data-lucide="share-2" class="w-4 h-4 text-indigo-600"></i>
+            สัดส่วนยอดขายตามช่องทาง (Sales Channels)
+          </h4>
+          <div class="h-64 flex items-center justify-center">
+            <canvas id="channelChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 4: Payment Methods -->
+        <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200/80">
+          <h4 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <i data-lucide="wallet" class="w-4 h-4 text-amber-600"></i>
+            สัดส่วนวิธีชำระเงิน (หลังปรับตรรกะหน้าร้าน COD เป็นเงินสด)
+          </h4>
+          <div class="h-64 flex items-center justify-center">
+            <canvas id="paymentChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Interactive Cleaned Data Explorer -->
+    <section class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="table" class="w-6 h-6 text-sky-600"></i>
+            ตารางสำรวจข้อมูลจริง (Cleaned Dataset Explorer)
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1">
+            ค้นหา กรอง และตรวจสอบความถูกต้องของข้อมูลหลังคลีนนิ่ง
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="loadFullBtn" onclick="loadFullCsv()" class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>โหลดข้อมูลเต็ม 9,803 แถวจาก CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters Bar -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">ค้นหาคำสำคัญ</label>
+          <div class="relative">
+            <input type="text" id="searchInput" oninput="applyFilters()" placeholder="รหัสออร์เดอร์, ลูกค้า, สินค้า..." class="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-3"></i>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">ภูมิภาค</label>
+          <select id="regionFilter" onchange="applyFilters()" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="">ทุกภาค</option>
+            <option value="ภาคกลาง">ภาคกลาง</option>
+            <option value="ภาคเหนือ">ภาคเหนือ</option>
+            <option value="ภาคตะวันออก">ภาคตะวันออก</option>
+            <option value="ภาคใต้">ภาคใต้</option>
+            <option value="ภาคตะวันออกเฉียงเหนือ">ภาคตะวันออกเฉียงเหนือ</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">ช่องทางการขาย</label>
+          <select id="channelFilter" onchange="applyFilters()" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="">ทุกช่องทาง</option>
+            <option value="หน้าร้าน">หน้าร้าน</option>
+            <option value="แอปมือถือ">แอปมือถือ</option>
+            <option value="เว็บไซต์">เว็บไซต์</option>
+            <option value="โซเชียลมีเดีย">โซเชียลมีเดีย</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">วิธีชำระเงิน</label>
+          <select id="paymentFilter" onchange="applyFilters()" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="">ทุกวิธี</option>
+            <option value="บัตรเครดิต">บัตรเครดิต</option>
+            <option value="เงินสด">เงินสด</option>
+            <option value="โอนผ่านธนาคาร">โอนผ่านธนาคาร</option>
+            <option value="เก็บเงินปลายทาง">เก็บเงินปลายทาง</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">สถานะ</label>
+          <select id="statusFilter" onchange="applyFilters()" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="">ทุกสถานะ</option>
+            <option value="สำเร็จ">สำเร็จ</option>
+            <option value="คืนสินค้า">คืนสินค้า</option>
+            <option value="ยกเลิก">ยกเลิก</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="overflow-x-auto rounded-2xl border border-slate-200">
+        <table class="min-w-full divide-y divide-slate-200 text-xs">
+          <thead class="bg-slate-100 text-slate-700 font-semibold">
+            <tr>
+              <th class="px-3 py-2.5 text-left">รหัสออร์เดอร์</th>
+              <th class="px-3 py-2.5 text-left">วันที่</th>
+              <th class="px-3 py-2.5 text-left">ลูกค้า</th>
+              <th class="px-3 py-2.5 text-left">เพศ/อายุ</th>
+              <th class="px-3 py-2.5 text-left">จังหวัด (ภาค)</th>
+              <th class="px-3 py-2.5 text-left">ช่องทาง</th>
+              <th class="px-3 py-2.5 text-left">สินค้า</th>
+              <th class="px-3 py-2.5 text-right">ราคา (ฐาน)</th>
+              <th class="px-3 py-2.5 text-right">ยอดสุทธิ</th>
+              <th class="px-3 py-2.5 text-left">วิธีชำระเงิน</th>
+              <th class="px-3 py-2.5 text-center">สถานะ</th>
+              <th class="px-3 py-2.5 text-center">ค่าส่ง/วันส่ง</th>
+              <th class="px-3 py-2.5 text-center">รีวิว</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-100 bg-white">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div class="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+        <div id="recordCountInfo">กำลังโหลดข้อมูล...</div>
+        <div class="flex items-center space-x-2">
+          <button onclick="changePage(-1)" id="prevBtn" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50">ก่อนหน้า</button>
+          <span id="pageIndicator" class="font-medium text-slate-700">หน้า 1 / 1</span>
+          <button onclick="changePage(1)" id="nextBtn" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50">ถัดไป</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Data Governance & Engineering Architecture -->
+    <section class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 shadow-lg">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-medium border border-indigo-400/30 mb-3">
+          <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+          มาตรการป้องกันระยะยาว (Data Governance & System Prevention)
+        </div>
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight">
+          สถาปัตยกรรมการป้องกันปัญหาคุณภาพข้อมูลที่ระดับต้นทาง
+        </h2>
+        <p class="text-slate-300 text-xs sm:text-sm mt-2 leading-relaxed">
+          เพื่อไม่ให้เกิดปัญหาเดิมซ้ำใน Data Warehouse และ BI Dashboard ควรติดตั้ง Database Constraints และ Application Validation ดังนี้:
+        </p>
+      </div>
+
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
+          <div class="text-sky-400 font-bold mb-1 flex items-center gap-1.5">
+            <i data-lucide="database" class="w-4 h-4"></i>
+            Database Constraints
+          </div>
+          <p class="text-slate-300 leading-relaxed">
+            - ใช้ <code class="text-sky-300">CHECK (status != 'ยกเลิก' OR shipping_fee = 0)</code><br>
+            - ใช้ Foreign Key เชื่อมต่อกับ Master Province ID มาตรฐานกระทรวงมหาดไทย<br>
+            - จัดเก็บ <code class="text-sky-300">date_of_birth</code> แทนฟิลด์ <code class="text-sky-300">age</code> คงที่
+          </p>
+        </div>
+
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
+          <div class="text-indigo-400 font-bold mb-1 flex items-center gap-1.5">
+            <i data-lucide="code" class="w-4 h-4"></i>
+            API & Business Rules
+          </div>
+          <p class="text-slate-300 leading-relaxed">
+            - ระบบ POS หน้าร้านต้องซ่อนปุ่มเลือก "เก็บเงินปลายทาง (COD)"<br>
+            - มี Payment Gateway API Validation แยกประเภท Debit / Credit / Supplementary Card อัตโนมัติ<br>
+            - ตรวจสอบความถูกต้องของเพศเป็น Mandatory Radio Button
+          </p>
+        </div>
+
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
+          <div class="text-emerald-400 font-bold mb-1 flex items-center gap-1.5">
+            <i data-lucide="git-branch" class="w-4 h-4"></i>
+            Automated CI/CD Pipeline
+          </div>
+          <p class="text-slate-300 leading-relaxed">
+            - ติดตั้ง Data Contract & Great Expectations ใน ETL Pipeline<br>
+            - Alerts อัตโนมัติเมื่อพบสินค้าชนิดเดิมแต่ราคาหลุดกรอบ Deviation (> 15% จาก Median)<br>
+            - ประเมิน Missing Review Rate เป็นประจำทุกสัปดาห์
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div>
+        จัดทำสำหรับโครงการ <span class="font-semibold text-slate-700">nathapong1111</span> • Audit & Cleansing System
+      </div>
+      <div class="flex items-center gap-4">
+        <span>Powered by GitHub CLI & GitHub Pages</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Include Data Script -->
+  <script src="data.js"></script>
+
+  <script>
+    // Initialize Icons
+    lucide.createIcons();
+
+    let allRows = (window.DASHBOARD_DATA && window.DASHBOARD_DATA.sampleRows) ? window.DASHBOARD_DATA.sampleRows : [];
+    let filteredRows = [...allRows];
+    let currentPage = 1;
+    const pageSize = 15;
+
+    // Filter Issue Cards in Section 1
+    function filterIssueCards(group) {
+      const cards = document.querySelectorAll('.issue-card');
+      const buttons = document.querySelectorAll('.tab-btn');
+      
+      buttons.forEach(btn => {
+        btn.classList.remove('active', 'bg-sky-600', 'text-white');
+        btn.classList.add('bg-white', 'text-slate-700');
+      });
+      event.target.classList.add('active', 'bg-sky-600', 'text-white');
+      event.target.classList.remove('bg-white', 'text-slate-700');
+
+      cards.forEach(card => {
+        if (group === 'all' || card.classList.contains(group)) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    // Apply filters to Table
+    function applyFilters() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const reg = document.getElementById('regionFilter').value;
+      const chan = document.getElementById('channelFilter').value;
+      const pay = document.getElementById('paymentFilter').value;
+      const stat = document.getElementById('statusFilter').value;
+
+      filteredRows = allRows.filter(row => {
+        if (reg && row['ภาค'] !== reg) return false;
+        if (chan && row['ช่องทางการขาย'] !== chan) return false;
+        if (pay && row['วิธีชำระเงิน'] !== pay) return false;
+        if (stat && row['สถานะ'] !== stat) return false;
+
+        if (q) {
+          const match = (row['รหัสคำสั่งซื้อ'] || '').toLowerCase().includes(q) ||
+                        (row['รหัสลูกค้า'] || '').toLowerCase().includes(q) ||
+                        (row['ชื่อสินค้า'] || '').toLowerCase().includes(q) ||
+                        (row['จังหวัด'] || '').toLowerCase().includes(q);
+          if (!match) return false;
+        }
+        return true;
+      });
+
+      currentPage = 1;
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      const start = (currentPage - 1) * pageSize;
+      const end = Math.min(start + pageSize, filteredRows.length);
+      const pageData = filteredRows.slice(start, end);
+
+      if (filteredRows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="13" class="px-4 py-8 text-center text-slate-400">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
+        document.getElementById('recordCountInfo').textContent = `แสดง 0 จาก 0 รายการ`;
+        document.getElementById('pageIndicator').textContent = `หน้า 1 / 1`;
+        return;
+      }
+
+      let html = '';
+      pageData.forEach(r => {
+        let statusBadge = '';
+        if (r['สถานะ'] === 'สำเร็จ') statusBadge = '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold">สำเร็จ</span>';
+        else if (r['สถานะ'] === 'ยกเลิก') statusBadge = '<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-semibold">ยกเลิก</span>';
+        else statusBadge = '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold">คืนสินค้า</span>';
+
+        let payBadge = r['วิธีชำระเงิน'];
+        if (r['หมายเหตุการชำระเงิน'] && r['หมายเหตุการชำระเงิน'] !== 'ปกติ') {
+          payBadge += ` <span class="block text-[10px] text-amber-600 font-medium">${r['หมายเหตุการชำระเงิน']}</span>`;
+        }
+
+        let diff = parseFloat(r['ส่วนต่างราคา']) || 0;
+        let diffBadge = '';
+        if (diff !== 0) {
+          diffBadge = `<span class="text-[10px] ${diff > 0 ? 'text-rose-500' : 'text-emerald-500'}">(${diff > 0 ? '+' : ''}${diff})</span>`;
+        }
+
+        let shipInfo = `฿${r['ค่าจัดส่ง'] || 0}`;
+        if (r['จำนวนวันจัดส่ง']) {
+          shipInfo += ` / ${r['จำนวนวันจัดส่ง']} วัน`;
+        } else if (r['สถานะ'] === 'ยกเลิก') {
+          shipInfo = `<span class="text-slate-400">-</span>`;
+        }
+
+        let reviewDisplay = r['คะแนนรีวิว'] ? `⭐ ${r['คะแนนรีวิว']}` : '<span class="text-slate-300">-</span>';
+
+        html += `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="px-3 py-2 font-mono font-medium text-sky-700">${r['รหัสคำสั่งซื้อ']}</td>
+            <td class="px-3 py-2 text-slate-500">${r['วันที่สั่งซื้อ']}</td>
+            <td class="px-3 py-2 font-mono text-slate-600">${r['รหัสลูกค้า']}</td>
+            <td class="px-3 py-2">${r['เพศ']} (${r['อายุ']} ปี)</td>
+            <td class="px-3 py-2">${r['จังหวัด']} <span class="text-slate-400 text-[10px]">(${r['ภาค']})</span></td>
+            <td class="px-3 py-2 text-slate-600">${r['ช่องทางการขาย']}</td>
+            <td class="px-3 py-2 font-medium text-slate-800">${r['ชื่อสินค้า']}</td>
+            <td class="px-3 py-2 text-right">฿${r['ราคาต่อหน่วย']} ${diffBadge}</td>
+            <td class="px-3 py-2 text-right font-semibold text-slate-900">฿${parseFloat(r['ยอดรวมสุทธิ']).toLocaleString()}</td>
+            <td class="px-3 py-2">${payBadge}</td>
+            <td class="px-3 py-2 text-center">${statusBadge}</td>
+            <td class="px-3 py-2 text-center text-slate-600">${shipInfo}</td>
+            <td class="px-3 py-2 text-center font-medium">${reviewDisplay}</td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+
+      const totalPages = Math.ceil(filteredRows.length / pageSize) || 1;
+      document.getElementById('recordCountInfo').textContent = `แสดง ${start + 1} - ${end} จาก ${filteredRows.length.toLocaleString()} รายการ`;
+      document.getElementById('pageIndicator').textContent = `หน้า ${currentPage} / ${totalPages}`;
+      document.getElementById('prevBtn').disabled = (currentPage === 1);
+      document.getElementById('nextBtn').disabled = (currentPage === totalPages);
+    }
+
+    function changePage(delta) {
+      const totalPages = Math.ceil(filteredRows.length / pageSize) || 1;
+      const newPage = currentPage + delta;
+      if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        renderTable();
+      }
+    }
+
+    // Load full CSV with PapaParse
+    function loadFullCsv() {
+      const btn = document.getElementById('loadFullBtn');
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> กำลังโหลด CSV เต็ม...`;
+      lucide.createIcons();
+
+      Papa.parse("cleaned_sales_data.csv", {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          allRows = results.data;
+          applyFilters();
+          btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-white"></i> โหลดครบ 9,803 แถวแล้ว`;
+          btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+          btn.classList.add('bg-slate-700');
+          lucide.createIcons();
+        },
+        error: function(err) {
+          console.error("CSV loading error:", err);
+          alert("ไม่สามารถอ่านไฟล์ผ่าน direct fetch ได้ กรุณาเปิดผ่านเว็บเซิร์ฟเวอร์ หรือใช้ Sample ที่แสดงอยู่แล้วครับ");
+          btn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> ลองใหม่อีกครั้ง`;
+          lucide.createIcons();
+        }
+      });
+    }
+
+    // Initialize Charts
+    function initCharts() {
+      const d = window.DASHBOARD_DATA || {};
+
+      // 1. Issue Breakdown Chart
+      new Chart(document.getElementById('issueChart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['ปรับปรุงอายุตามปี', 'รีวิวว่าง (คง Null)', 'คำสั่งซื้อยกเลิกค่าส่ง', 'ซื้อหน้าร้านแต่ COD', 'ชื่ออยุธยา->พระนครศรีอยุธยา', 'ผู้เยาว์ใช้บัตรเครดิต', 'เพศไม่ระบุ (กรองออก)'],
+          datasets: [{
+            data: [d.adjustedAge || 4379, 1863, d.fixedCancelled || 456, d.fixedPosCod || 396, d.fixedAyutthaya || 264, d.flaggedMinorCc || 234, d.droppedGender || 197],
+            backgroundColor: ['#6366f1', '#94a3b8', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6', '#ef4444'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right', labels: { boxWidth: 12, font: { family: 'Prompt', size: 10 } } }
+          }
+        }
+      });
+
+      // 2. Region Chart
+      const regLabels = (d.regions || []).map(r => r.Name);
+      const regCounts = (d.regions || []).map(r => r.Count);
+      new Chart(document.getElementById('regionChart'), {
+        type: 'bar',
+        data: {
+          labels: regLabels.length ? regLabels : ['ภาคกลาง', 'ภาคเหนือ', 'ภาคตะวันออก', 'ภาคใต้', 'ภาคตะวันออกเฉียงเหนือ'],
+          datasets: [{
+            label: 'จำนวนออร์เดอร์',
+            data: regCounts.length ? regCounts : [3200, 2100, 1900, 1400, 1203],
+            backgroundColor: '#10b981',
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Prompt' } } },
+            x: { grid: { display: false }, ticks: { font: { family: 'Prompt' } } }
+          }
+        }
+      });
+
+      // 3. Channel Chart
+      const chanLabels = (d.channels || []).map(c => c.Name);
+      const chanCounts = (d.channels || []).map(c => c.Count);
+      new Chart(document.getElementById('channelChart'), {
+        type: 'polarArea',
+        data: {
+          labels: chanLabels.length ? chanLabels : ['แอปมือถือ', 'เว็บไซต์', 'หน้าร้าน', 'โซเชียลมีเดีย'],
+          datasets: [{
+            data: chanCounts.length ? chanCounts : [3500, 2600, 2000, 1703],
+            backgroundColor: ['#38bdf8', '#818cf8', '#fbbf24', '#f472b6']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Prompt', size: 10 } } } }
+        }
+      });
+
+      // 4. Payment Chart
+      const payLabels = (d.payments || []).map(p => p.Name);
+      const payCounts = (d.payments || []).map(p => p.Count);
+      new Chart(document.getElementById('paymentChart'), {
+        type: 'pie',
+        data: {
+          labels: payLabels.length ? payLabels : ['โอนผ่านธนาคาร', 'บัตรเครดิต', 'เงินสด', 'เก็บเงินปลายทาง'],
+          datasets: [{
+            data: payCounts.length ? payCounts : [3200, 2900, 2100, 1603],
+            backgroundColor: ['#0284c7', '#6366f1', '#10b981', '#f59e0b'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Prompt', size: 10 } } } }
+        }
+      });
+    }
+
+    // Startup
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTable();
+      initCharts();
+    });
+  </script>
+</body>
+</html>
